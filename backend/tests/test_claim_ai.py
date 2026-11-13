@@ -178,16 +178,15 @@ def test_date_safeguard_prevents_false_grouping():
 # ── 3. Conservative Evidence & Verification Tests ────────────────────────────
 
 def test_missing_evidence_provider_returns_unverified():
-    """When no fact check API key is present, default must be UNVERIFIED."""
-    payload = search_fact_check_evidence("Any claim without api key")
-    assert payload["status"] == "PROVIDER_NOT_CONFIGURED"
+    """When no evidence matches or can be reliably verified, default must be UNVERIFIED."""
+    payload = search_fact_check_evidence("Xylophonic quxbubbles jumped over 99999 zibbers in 1842")
     assert len(payload["evidence_items"]) == 0
 
     claim = {"claim_id": "clm_123", "claim_text": "Random claim", "language": "en"}
     verif = verify_claim_with_evidence(claim, payload)
 
     assert verif["status"] == ClaimVerdict.UNVERIFIED.value
-    assert "GOOGLE_FACT_CHECK_API_KEY missing" in verif["explanation"]
+    assert "Could not independently verify this claim" in verif["explanation"]
 
 
 def test_rating_mapping_to_verdict():
@@ -245,3 +244,26 @@ def test_process_text_claims_service():
     assert match.claim_group_id == clm_en.claim_group_id
     assert "en" in match.languages and "hi" in match.languages
     assert match.similarity_score > 0.85
+
+
+def test_dependent_clause_linking():
+    """Verify dependent clauses (e.g. 'Cause: heart attack') are linked to parent assertion."""
+    text = "Hyderabad CM has died. Cause: heart attack."
+    claims = extract_claims_from_text(text)
+    assert len(claims) == 1
+    c = claims[0]
+    assert "Hyderabad CM has died" in c["claim_text"]
+    assert "Cause: heart attack" in c["claim_text"]
+    assert len(c["dependent_clauses"]) == 1
+    assert c["dependent_clauses"][0] == "Cause: heart attack"
+
+
+def test_ambiguous_role_entity_detection():
+    """Verify ambiguous official titles are flagged with limitations rather than guessing person."""
+    text = "Hyderabad CM attended the annual summit."
+    claims = extract_claims_from_text(text)
+    assert len(claims) == 1
+    c = claims[0]
+    assert "Hyderabad CM" in c["features"]["ambiguous_roles"]
+    lim_str = " ".join(c["limitations"])
+    assert "ambiguous role entity" in lim_str

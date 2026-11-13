@@ -42,11 +42,11 @@ function InvestigationDetailContent() {
   const [networkLoading, setNetworkLoading] = useState(false);
   const [propLoading, setPropLoading] = useState(false);
 
+  const [showAdvancedDetails, setShowAdvancedDetails] = useState(false);
+
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load module detailed results
   const loadModuleResults = useCallback(async (inv: Investigation) => {
-    // 1. Media
     if (inv.modules.media_ai.status !== 'NOT_APPLICABLE') {
       setMediaLoading(true);
       fetchMediaResults(inv.investigation_id)
@@ -55,7 +55,6 @@ function InvestigationDetailContent() {
         .finally(() => setMediaLoading(false));
     }
 
-    // 2. Claims
     if (inv.modules.claim_ai.status !== 'NOT_APPLICABLE') {
       setClaimsLoading(true);
       fetchClaimResults(inv.investigation_id)
@@ -64,7 +63,6 @@ function InvestigationDetailContent() {
         .finally(() => setClaimsLoading(false));
     }
 
-    // 3. Network
     if (inv.modules.network_ai.status !== 'NOT_APPLICABLE') {
       setNetworkLoading(true);
       fetchNetworkResults(inv.investigation_id)
@@ -73,7 +71,6 @@ function InvestigationDetailContent() {
         .finally(() => setNetworkLoading(false));
     }
 
-    // 4. Propagation
     if (inv.modules.propagation.status !== 'NOT_APPLICABLE') {
       setPropLoading(true);
       fetchPropagationResults(inv.investigation_id)
@@ -83,7 +80,6 @@ function InvestigationDetailContent() {
     }
   }, []);
 
-  // Initial load
   const loadInitial = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -102,7 +98,6 @@ function InvestigationDetailContent() {
     loadInitial();
   }, [loadInitial]);
 
-  // Polling for live status while QUEUED or PROCESSING
   useEffect(() => {
     if (!investigation) return;
 
@@ -140,158 +135,269 @@ function InvestigationDetailContent() {
           loadModuleResults(full);
         }
       } catch {
-        // keep polling silently
+        // silent polling
       }
     }, 2000);
 
     return () => {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     };
-  }, [investigation?.status, investigationId, loadModuleResults, investigation]);
+  }, [investigation, investigationId, loadModuleResults]);
 
   if (loading) {
     return (
       <div className="py-24 text-center space-y-3">
-        <div className="w-7 h-7 border-2 border-slate-700 border-t-transparent rounded-full animate-spin mx-auto" />
-        <p className="text-slate-600 text-sm">Retrieving investigation dossier {investigationId}...</p>
+        <div className="w-8 h-8 border-2 border-teal-700 border-t-transparent rounded-full animate-spin mx-auto" />
+        <p className="text-slate-600 text-xs">Loading investigation records...</p>
       </div>
     );
   }
 
   if (error || !investigation) {
     return (
-      <div className="max-w-2xl mx-auto py-12 text-center space-y-4">
+      <div className="max-w-xl mx-auto py-12 text-center space-y-4">
         <div className="bg-rose-50 border border-rose-200 rounded-xl p-6 text-rose-900 shadow-xs">
-          <h2 className="text-lg font-bold">Investigation Not Found or Error</h2>
-          <p className="text-xs text-rose-700 mt-1">{error || 'Investigation could not be loaded.'}</p>
+          <span className="text-3xl block mb-2">⚠️</span>
+          <h2 className="text-lg font-bold">Investigation Not Accessible</h2>
+          <p className="text-xs text-rose-700 mt-1">{error || 'Investigation could not be located.'}</p>
+          <div className="pt-4 flex justify-center gap-3">
+            <button
+              onClick={loadInitial}
+              className="px-4 py-2 bg-rose-800 text-white text-xs font-semibold rounded-lg hover:bg-rose-700 transition-colors"
+            >
+              Retry
+            </button>
+            <Link
+              href="/"
+              className="px-4 py-2 bg-white border border-slate-300 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-50 transition-colors"
+            >
+              Back to Dashboard
+            </Link>
+          </div>
         </div>
-        <Link
-          href="/"
-          className="inline-block px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold"
-        >
-          ← Return to Dashboard
-        </Link>
       </div>
     );
   }
 
-  return (
-    <div className="space-y-6">
-      {/* Breadcrumb & Navigation */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-          <Link href="/" className="hover:text-slate-900">
-            Dashboard
-          </Link>
-          <span>/</span>
-          <span className="text-slate-700 font-mono">{investigation.investigation_id}</span>
-        </div>
+  const isTextOnly =
+    investigation.input_type === 'text' &&
+    investigation.modules.media_ai.status === 'NOT_APPLICABLE' &&
+    investigation.modules.network_ai.status === 'NOT_APPLICABLE';
 
+  return (
+    <div className="space-y-6 max-w-4xl mx-auto">
+      {/* Top Bar */}
+      <div className="flex items-center justify-between text-xs pb-2 border-b border-slate-200">
+        <Link href="/" className="text-slate-600 hover:text-slate-900 font-medium flex items-center gap-1">
+          ← Back to Dashboard
+        </Link>
         <button
           onClick={loadInitial}
           className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-300 text-xs font-semibold text-slate-700 shadow-xs flex items-center gap-1.5 transition-colors"
         >
-          <span>🔄</span> Refresh Status
+          <span>🔄</span> Refresh
         </button>
       </div>
 
-      {/* Investigation Dossier Header Card */}
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs uppercase font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold border border-slate-200">
-                {investigation.input_type} Investigation
-              </span>
-              <span className="text-xs text-slate-400">ID:</span>
-              <span className="font-mono text-teal-800 font-bold text-sm">
-                {investigation.investigation_id}
-              </span>
-            </div>
-            <h1 className="text-xl font-extrabold text-slate-900 mt-1.5">
-              Multimodal Intelligence Dossier
+      {/* Primary Simplified View for Text/Claims */}
+      {isTextOnly ? (
+        <div className="space-y-6">
+          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs space-y-5">
+            <h1 className="text-xl font-extrabold text-slate-900">
+              Claim Verification Results
             </h1>
-          </div>
 
-          <div className="flex flex-col items-start md:items-end gap-1">
-            <span className="text-[11px] text-slate-400 uppercase tracking-wider font-bold">
-              Overall Status
-            </span>
-            <StatusBadge status={investigation.status} size="lg" />
+            {/* Submitted Claim */}
+            <div>
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                Submitted Claim
+              </span>
+              <p className="text-sm font-semibold text-slate-900 bg-slate-50 p-4 rounded-xl border border-slate-200 leading-relaxed">
+                {investigation.text}
+              </p>
+            </div>
+
+            {/* Claims & Verdicts */}
+            {claimsLoading ? (
+              <div className="py-8 text-center text-slate-500 text-xs flex items-center justify-center gap-2">
+                <div className="w-4 h-4 border-2 border-teal-700 border-t-transparent rounded-full animate-spin" />
+                <span>Verifying against authoritative sources...</span>
+              </div>
+            ) : claimResult?.claims && claimResult.claims.length > 0 ? (
+              <div className="space-y-4 pt-2">
+                {claimResult.claims.map((claim) => (
+                  <div
+                    key={claim.claim_id}
+                    className="p-5 rounded-xl border border-slate-200 bg-white space-y-3"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+                      <span className="text-sm font-bold text-slate-900">
+                        {claim.claim_text}
+                      </span>
+                      <StatusBadge status={claim.verification?.status || 'UNVERIFIED'} size="md" />
+                    </div>
+
+                    {/* Short Explanation */}
+                    <div>
+                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-0.5">
+                        Outcome
+                      </span>
+                      <p className="text-xs text-slate-800 leading-relaxed font-medium">
+                        {claim.verification?.explanation || 'Could not independently verify this claim.'}
+                      </p>
+                    </div>
+
+                    {/* Clickable Evidence Sources */}
+                    {claim.verification?.evidence && claim.verification.evidence.length > 0 && (
+                      <div className="pt-2 space-y-1.5">
+                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                          Evidence Sources
+                        </span>
+                        <div className="space-y-1.5">
+                          {claim.verification.evidence.map((ev) => (
+                            <a
+                              key={ev.evidence_id}
+                              href={ev.source_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block p-3 rounded-lg border border-teal-200 bg-teal-50/40 hover:bg-teal-50 transition-colors text-xs"
+                            >
+                              <div className="flex items-center justify-between font-semibold text-teal-900 mb-0.5">
+                                <span className="truncate">{ev.title || ev.source_name}</span>
+                                <span className="text-teal-700 shrink-0 ml-2">Open Source ↗</span>
+                              </div>
+                              {ev.snippet && (
+                                <p className="text-slate-600 text-[11px] line-clamp-2 leading-relaxed">
+                                  {ev.snippet}
+                                </p>
+                              )}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500 italic">No verifiable factual claims detected in text.</p>
+            )}
           </div>
         </div>
+      ) : (
+        /* Multimodal investigations (Media or Social Post Dataset) */
+        <div className="space-y-6">
+          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h1 className="text-xl font-extrabold text-slate-900">
+                Investigation Findings
+              </h1>
+              <StatusBadge status={investigation.status} size="md" />
+            </div>
 
-        {/* Timestamps and Meta */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 text-xs">
-          <div>
-            <span className="text-slate-400 block text-[11px]">Created At</span>
-            <span className="text-slate-800 font-mono font-medium">
-              {new Date(investigation.created_at).toLocaleString()}
-            </span>
+            {investigation.text && (
+              <div>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                  Submitted Narrative
+                </span>
+                <p className="text-xs text-slate-800 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                  {investigation.text}
+                </p>
+              </div>
+            )}
           </div>
-          <div>
-            <span className="text-slate-400 block text-[11px]">Last Updated</span>
-            <span className="text-slate-800 font-mono font-medium">
-              {new Date(investigation.updated_at).toLocaleString()}
-            </span>
-          </div>
-          <div>
-            <span className="text-slate-400 block text-[11px]">Media Artifact</span>
-            <span className="text-slate-800 truncate block font-medium">
-              {investigation.media_filename || 'None (Text Only)'}
-            </span>
-          </div>
-          <div>
-            <span className="text-slate-400 block text-[11px]">Language Hint</span>
-            <span className="text-slate-800 uppercase font-mono font-medium">
-              {investigation.language_hint || 'Auto-Detect'}
-            </span>
-          </div>
+
+          {investigation.modules.media_ai.status !== 'NOT_APPLICABLE' && (
+            <MediaPanel
+              moduleStatus={investigation.modules.media_ai}
+              mediaResult={mediaResult}
+              loading={mediaLoading}
+              inputType={investigation.input_type}
+            />
+          )}
+
+          {investigation.modules.claim_ai.status !== 'NOT_APPLICABLE' && (
+            <ClaimPanel
+              moduleStatus={investigation.modules.claim_ai}
+              claimResult={claimResult}
+              loading={claimsLoading}
+            />
+          )}
+
+          {investigation.modules.network_ai.status !== 'NOT_APPLICABLE' && (
+            <NetworkPanel
+              moduleStatus={investigation.modules.network_ai}
+              networkResult={networkResult}
+              loading={networkLoading}
+            />
+          )}
+
+          {investigation.modules.propagation.status !== 'NOT_APPLICABLE' && (
+            <PropagationPanel
+              moduleStatus={investigation.modules.propagation}
+              propagationResult={propagationResult}
+              loading={propLoading}
+            />
+          )}
         </div>
+      )}
 
-        {/* Input Text / Claim if any */}
-        {investigation.text && (
-          <div className="mt-4 pt-4 border-t border-slate-100">
-            <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1">
-              Submitted Narrative / Context:
-            </span>
-            <p className="text-xs sm:text-sm text-slate-800 bg-slate-50 p-3 rounded-lg border border-slate-200 leading-relaxed font-sans">
-              {investigation.text}
-            </p>
+      {/* Collapsible Advanced Details (Hidden by default) */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+        <button
+          onClick={() => setShowAdvancedDetails(!showAdvancedDetails)}
+          className="w-full flex items-center justify-between text-left text-xs font-semibold text-slate-700 hover:text-slate-900 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <span>⚙️</span>
+            <span>Advanced Details & Technical Record</span>
+          </div>
+          <span className="text-slate-400 font-mono text-[11px]">
+            {showAdvancedDetails ? 'Hide details ▲' : 'Show details ▼'}
+          </span>
+        </button>
+
+        {showAdvancedDetails && (
+          <div className="mt-4 pt-4 border-t border-slate-100 space-y-4 text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                <span className="text-slate-500 block text-[11px]">Investigation ID</span>
+                <span className="font-mono text-slate-800 font-bold text-[11px]">{investigation.investigation_id}</span>
+              </div>
+              <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                <span className="text-slate-500 block text-[11px]">Input Type</span>
+                <span className="capitalize text-slate-800 font-medium text-[11px]">{investigation.input_type}</span>
+              </div>
+              <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                <span className="text-slate-500 block text-[11px]">Submission Time</span>
+                <span className="text-slate-800 font-mono text-[11px]">{new Date(investigation.created_at).toLocaleString()}</span>
+              </div>
+              <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                <span className="text-slate-500 block text-[11px]">Status</span>
+                <span className="text-slate-800 font-semibold text-[11px]">{investigation.status}</span>
+              </div>
+            </div>
+
+            <div>
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                Raw JSON Dossier
+              </span>
+              <pre className="p-3 bg-slate-900 text-slate-100 rounded-lg overflow-x-auto text-[11px] font-mono leading-relaxed max-h-72">
+                {JSON.stringify(
+                  {
+                    investigation,
+                    claim_result: claimResult,
+                    media_result: mediaResult,
+                    network_result: networkResult,
+                    propagation_result: propagationResult,
+                  },
+                  null,
+                  2
+                )}
+              </pre>
+            </div>
           </div>
         )}
-      </div>
-
-      {/* Module Panels Grid */}
-      <div className="space-y-6">
-        {/* Panel 1: MEDIA_AI */}
-        <MediaPanel
-          moduleStatus={investigation.modules.media_ai}
-          mediaResult={mediaResult}
-          loading={mediaLoading}
-          inputType={investigation.input_type}
-        />
-
-        {/* Panel 2: CLAIM_AI */}
-        <ClaimPanel
-          moduleStatus={investigation.modules.claim_ai}
-          claimResult={claimResult}
-          loading={claimsLoading}
-        />
-
-        {/* Panel 3: NETWORK_AI */}
-        <NetworkPanel
-          moduleStatus={investigation.modules.network_ai}
-          networkResult={networkResult}
-          loading={networkLoading}
-        />
-
-        {/* Panel 4: PROPAGATION */}
-        <PropagationPanel
-          moduleStatus={investigation.modules.propagation}
-          propagationResult={propagationResult}
-          loading={propLoading}
-        />
       </div>
     </div>
   );
@@ -302,8 +408,8 @@ export default function InvestigationDetailPage() {
     <Suspense
       fallback={
         <div className="py-24 text-center space-y-3">
-          <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-slate-400 text-sm">Loading investigation details...</p>
+          <div className="w-8 h-8 border-2 border-teal-700 border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-slate-600 text-xs">Loading investigation details...</p>
         </div>
       }
     >

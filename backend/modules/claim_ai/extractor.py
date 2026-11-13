@@ -125,9 +125,22 @@ def split_sentences(text: str) -> list[str]:
 NUMBER_RE = re.compile(r"\b(?:\d{1,3}(?:,\d{2,3})*(?:\.\d+)?|\d+)\b")
 YEAR_RE = re.compile(r"\b(19\d\d|20\d\d)\b")
 
+# Ambiguous role / entity patterns (e.g. 'Hyderabad CM', 'Delhi Minister', 'Prime Minister of UK')
+AMBIGUOUS_ROLE_RE = re.compile(
+    r"\b(?:[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+(?:CM|PM|Chief Minister|Prime Minister|Minister|Governor|Mayor|Judge|President))\b|"
+    r"\b(?:(?:CM|PM|Chief Minister|Prime Minister|Minister|Governor|Mayor|Judge|President)\s+of\s+[A-Z][a-z]+)\b",
+    re.IGNORECASE,
+)
+
+# Dependent clause prefixes (e.g. 'Cause: heart attack', 'Reason: brake failure', 'Due to: heavy rainfall')
+DEPENDENT_CLAUSE_PREFIX_RE = re.compile(
+    r"^(?:cause|reason|due to|because of|source|origin|according to|reported by|alleged(?:ly)?)\s*[:\-]\s*",
+    re.IGNORECASE,
+)
+
 
 def extract_features(text: str, lang: str) -> dict[str, Any]:
-    """Extract numbers, dates, negation markers, and candidate entities from claim text."""
+    """Extract numbers, dates, negation markers, candidate entities, and ambiguous roles from claim text."""
     numbers = NUMBER_RE.findall(text)
     years = YEAR_RE.findall(text)
 
@@ -145,62 +158,104 @@ def extract_features(text: str, lang: str) -> dict[str, Any]:
     # Candidate capitalized entities (for English/transliterated scripts)
     capitalized = re.findall(r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b", text)
 
+    # Ambiguous entity roles
+    ambiguous_roles = AMBIGUOUS_ROLE_RE.findall(text)
+
     return {
         "numbers": sorted(list(set(numbers))),
         "years": sorted(list(set(years))),
         "has_negation": len(negations_found) > 0,
         "negation_words": negations_found,
         "candidate_entities": capitalized,
+        "ambiguous_roles": list(set(ambiguous_roles)),
     }
 
 
-# ── Core Claim Extraction Pipeline ───────────────────────────────────────────
+# ── Core Claim Extraction Pipeline ──────────────────────────────────────────
 
 def extract_claims_from_text(
     text: str,
     language_hint: str | None = None,
     source_label: str = "user_submission",
 ) -> list[dict[str, Any]]:
-    """Extract structured claim objects from submitted text."""
+    """Extract structured claim objects from submitted text.
+
+    Preserves context by linking dependent clauses (e.g. 'Cause: heart attack')
+    to preceding assertions rather than emitting ungrounded fragments.
+    """
     if not text or not text.strip():
         return []
 
     global_lang = detect_language(text, language_hint)
-    sentences = split_sentences(text)
+    raw_sentences = split_sentences(text)
+
+    # Pre-pass: stitch dependent clauses to their parent assertion if present
+    stitched_sentences: list[dict[str, Any]] = []
+    for s in raw_sentences:
+        s_clean = s.strip()
+        if not s_clean:
+            continue
+
+        is_dependent = bool(DEPENDENT_CLAUSE_PREFIX_RE.match(s_clean))
+        if is_dependent and stitched_sentences:
+            parent = stitched_sentences[-1]
+            parent["claim_text"] = f"{parent['claim_text']}. {s_clean}"
+            parent["dependent_clauses"].append(s_clean)
+        else:
+            stitched_sentences.append({
+                "claim_text": s_clean,
+                "original_text": s_clean,
+                "dependent_clauses": [],
+            })
 
     extracted_claims = []
     import uuid
 
-    for idx, sentence in enumerate(sentences):
-        # Detect language per sentence so mixed multilingual submissions are accurately labeled
+    for item in stitched_sentences:
+        sentence = item["claim_text"]
         sent_lang = detect_language(sentence, hint=global_lang)
         is_candidate, reason = is_factual_candidate(sentence, sent_lang)
         features = extract_features(sentence, sent_lang)
+
+        limitations = [
+            f"Heuristic extraction for language '{sent_lang}'.",
+            "Does not perform full semantic parsing or syntactic dependency resolution.",
+            "Non-declarative statements (questions/greetings) are filtered out.",
+        ]
+        if features.get("ambiguous_roles"):
+            limitations.append(
+                f"Contains ambiguous role entity: {', '.join(features['ambiguous_roles'])}. "
+                "System does not guess person identity without official confirmation."
+            )
+        if item["dependent_clauses"]:
+            limitations.append(
+                f"Linked dependent clause ({', '.join(item['dependent_clauses'])}) to preserve event context."
+            )
 
         claim_id = f"clm_{uuid.uuid4().hex[:12]}"
         extracted_claims.append({
             "claim_id": claim_id,
             "claim_text": sentence,
+            "original_text": item["original_text"],
+            "dependent_clauses": item["dependent_clauses"],
             "language": sent_lang,
             "is_factual_candidate": is_candidate,
             "filter_reason": reason,
             "extracted_from": source_label,
             "features": features,
-            "limitations": [
-                f"Heuristic extraction for language '{sent_lang}'.",
-                "Does not perform full semantic parsing or syntactic dependency resolution.",
-                "Non-declarative statements (questions/greetings) are filtered out.",
-            ],
+            "limitations": limitations,
         })
 
     # If all sentences were filtered as non-factual, but text is non-empty, keep the main text marked as unverified
     if not extracted_claims and text.strip():
         claim_id = f"clm_{uuid.uuid4().hex[:12]}"
-        features = extract_features(text.strip(), lang)
+        features = extract_features(text.strip(), global_lang)
         extracted_claims.append({
             "claim_id": claim_id,
             "claim_text": text.strip(),
-            "language": lang,
+            "original_text": text.strip(),
+            "dependent_clauses": [],
+            "language": global_lang,
             "is_factual_candidate": True,
             "filter_reason": "Single utterance fallback",
             "extracted_from": source_label,

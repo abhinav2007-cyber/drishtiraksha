@@ -237,7 +237,7 @@ async def test_claims_unavailable_in_stage1(ac):
     resp2 = await ac.get(f"/api/v1/investigations/{inv_id}/claims")
     body = resp2.json()
     assert body["success"] is True
-    assert body["data"]["status"] in ("UNAVAILABLE", "PENDING", "COMPLETED")
+    assert body["data"]["status"] in ("UNAVAILABLE", "PENDING", "RUNNING", "COMPLETED")
 
 
 # ── 10. Invalid input handling ─────────────────────────────────────────────

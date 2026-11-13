@@ -10,8 +10,17 @@ import {
   PropagationResult,
 } from './types';
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1';
+function getApiBase(): string {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  if (typeof window !== 'undefined' && window.location.hostname) {
+    return "http://" + window.location.hostname + ":8000/api/v1";
+  }
+  return 'http://127.0.0.1:8000/api/v1';
+}
+
+const API_BASE = 'http://127.0.0.1:8000/api/v1';
 
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {

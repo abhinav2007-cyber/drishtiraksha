@@ -34,36 +34,36 @@ export function Navbar() {
   ];
 
   return (
-    <header className="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-50 shadow-md">
+    <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-2 group">
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center font-bold text-white shadow-inner group-hover:scale-105 transition-transform">
+            <Link href="/" className="flex items-center gap-2.5 group">
+              <div className="w-8 h-8 rounded-lg bg-teal-800 flex items-center justify-center font-bold text-white text-base shadow-xs group-hover:bg-teal-900 transition-colors">
                 दृ
               </div>
-              <div>
-                <span className="font-extrabold text-lg tracking-wider text-slate-100 group-hover:text-cyan-400 transition-colors">
+              <div className="flex flex-col">
+                <span className="font-extrabold text-base tracking-wider text-slate-900 group-hover:text-teal-800 transition-colors leading-tight">
                   DRISHTIRAKSHA
                 </span>
-                <span className="hidden sm:inline-block ml-2 text-xs font-medium px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800">
-                  PS11 Intelligence
+                <span className="text-[11px] text-slate-500 font-medium">
+                  Misinformation & Media Intelligence
                 </span>
               </div>
             </Link>
           </div>
 
-          <nav className="flex items-center gap-1 sm:gap-2">
+          <nav className="flex items-center gap-2">
             {navItems.map((item) => {
               const active = pathname === item.href;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                     active
-                      ? 'bg-slate-800 text-cyan-400 border border-slate-700'
-                      : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
+                      ? 'bg-slate-100 text-teal-900 border border-slate-300'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                   }`}
                 >
                   {item.label}
@@ -71,25 +71,29 @@ export function Navbar() {
               );
             })}
 
-            <div className="ml-3 pl-3 border-l border-slate-800 flex items-center gap-2 text-xs">
+            <div className="ml-2 pl-3 border-l border-slate-200 flex items-center gap-1.5 text-xs">
               <span
-                className={`w-2.5 h-2.5 rounded-full ${
+                className={`w-2 h-2 rounded-full ${
                   backendOnline === true
-                    ? 'bg-emerald-500 shadow-sm shadow-emerald-500/50'
+                    ? 'bg-emerald-500 ring-2 ring-emerald-200'
                     : backendOnline === false
-                    ? 'bg-rose-500'
+                    ? 'bg-rose-500 ring-2 ring-rose-200'
                     : 'bg-amber-400 animate-pulse'
                 }`}
                 title={
                   backendOnline === true
-                    ? `Backend Online (v${health?.version || '0.1.0'})`
+                    ? `System online (FastAPI backend active)`
                     : backendOnline === false
-                    ? 'Backend Disconnected (Port 8000)'
-                    : 'Connecting to Backend...'
+                    ? 'Connection unavailable (Check localhost:8000)'
+                    : 'Connecting...'
                 }
               />
-              <span className="text-slate-400 hidden md:inline">
-                {backendOnline === true ? 'API Connected' : backendOnline === false ? 'API Offline' : 'Connecting'}
+              <span className="text-slate-500 text-[11px] font-medium hidden sm:inline">
+                {backendOnline === true
+                  ? 'System online'
+                  : backendOnline === false
+                  ? 'Connection unavailable'
+                  : 'Connecting...'}
               </span>
             </div>
           </nav>

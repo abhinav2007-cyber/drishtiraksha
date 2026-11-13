@@ -23,9 +23,10 @@ BACKEND_PORT: int = int(os.getenv("BACKEND_PORT", "8000"))
 # ---------------------------------------------------------------------------
 # CORS
 # ---------------------------------------------------------------------------
+_default_cors = "http://localhost:3000,http://127.0.0.1:3000,http://10.117.65.187:3000"
 CORS_ORIGINS: list[str] = [
     o.strip()
-    for o in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+    for o in os.getenv("CORS_ORIGINS", _default_cors).split(",")
     if o.strip()
 ]
 
