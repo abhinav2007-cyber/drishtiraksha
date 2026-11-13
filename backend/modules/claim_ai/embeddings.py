@@ -148,5 +148,11 @@ def group_and_match_claims(
                         "similarity_score": sim,
                         "method": f"{MODEL_ID} (Cosine Similarity)",
                     })
+            elif (c1["language"] == "te" or c2["language"] == "te") and sim < similarity_threshold:
+                # Document honest limitation: MiniLM-L12 has known lower cross-lingual alignment for Telugu script
+                c1.setdefault("limitations", []).append(
+                    f"Cross-lingual Telugu alignment with {MODEL_ID} exhibits known representational sparsity. "
+                    "Inconclusive cross-language matches are conservatively left unmerged."
+                )
 
     return claims, cross_lingual_matches

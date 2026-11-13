@@ -109,7 +109,8 @@ async def create_investigation(
         updated_at=now,
     )
 
-    modules = _initial_module_statuses(inv.input_type)
+    has_posts = bool(req.social_posts and len(req.social_posts) > 0)
+    modules = _initial_module_statuses(inv.input_type, has_posts=has_posts)
     inv.modules = modules
 
     social_json = json.dumps(req.social_posts) if req.social_posts else None
@@ -141,7 +142,7 @@ async def create_investigation(
     return inv
 
 
-def _initial_module_statuses(input_type: InputType) -> ModuleStatuses:
+def _initial_module_statuses(input_type: InputType, has_posts: bool = False) -> ModuleStatuses:
     ms = ModuleStatuses()
     if input_type == InputType.TEXT:
         ms.media_ai = ModuleStatus(status=ModuleStatusEnum.NOT_APPLICABLE)
@@ -152,9 +153,31 @@ def _initial_module_statuses(input_type: InputType) -> ModuleStatuses:
     else:
         ms.media_ai = ModuleStatus(status=ModuleStatusEnum.NOT_APPLICABLE)
         ms.claim_ai = ModuleStatus(status=ModuleStatusEnum.PENDING)
-    ms.network_ai = ModuleStatus(status=ModuleStatusEnum.NOT_APPLICABLE)
-    ms.propagation = ModuleStatus(status=ModuleStatusEnum.NOT_APPLICABLE)
+
+    if has_posts:
+        ms.network_ai = ModuleStatus(status=ModuleStatusEnum.PENDING)
+        ms.propagation = ModuleStatus(status=ModuleStatusEnum.PENDING)
+    else:
+        ms.network_ai = ModuleStatus(status=ModuleStatusEnum.NOT_APPLICABLE)
+        ms.propagation = ModuleStatus(status=ModuleStatusEnum.NOT_APPLICABLE)
     return ms
+
+
+async def get_investigation_social_posts(investigation_id: str) -> list[dict[str, Any]] | None:
+    """Retrieve raw social posts JSON for an investigation."""
+    async with aiosqlite.connect(_db_path()) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute(
+            "SELECT social_posts_json FROM investigations WHERE investigation_id = ?",
+            (investigation_id,),
+        )
+        row = await cursor.fetchone()
+        if not row or not row["social_posts_json"]:
+            return None
+        try:
+            return json.loads(row["social_posts_json"])
+        except Exception:
+            return None
 
 
 async def get_investigation(investigation_id: str) -> Investigation | None:

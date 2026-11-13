@@ -11,6 +11,7 @@ import logging
 from backend import database as db
 from backend.modules.claim_ai.service import process_text_claims
 from backend.modules.media_ai.service import process_media
+from backend.modules.network_ai.service import analyze_network, analyze_propagation
 from backend.schemas import (
     InvestigationState,
     ModuleStatusEnum,
@@ -116,17 +117,66 @@ async def _process(investigation_id: str) -> None:
                 )
 
         # ─────────────────────────────────────────────────────────────────────
-        # 3. Other modules (Stage 4: network & propagation pending)
+        # 3. NETWORK_AI & PROPAGATION (Live Input-Driven Analysis)
         # ─────────────────────────────────────────────────────────────────────
-        for name in ("network_ai", "propagation"):
-            ms = getattr(inv.modules, name)
-            if ms.status == ModuleStatusEnum.PENDING:
+        posts = await db.get_investigation_social_posts(investigation_id)
+
+        # A. NETWORK_AI
+        if inv.modules.network_ai.status == ModuleStatusEnum.PENDING:
+            if posts and len(posts) > 0:
+                await db.update_module_status(investigation_id, "network_ai", ModuleStatusEnum.RUNNING)
+                try:
+                    net_res = await asyncio.to_thread(
+                        analyze_network,
+                        posts=posts,
+                        investigation_id=investigation_id,
+                    )
+                    await db.store_module_result(
+                        investigation_id, "network_ai", net_res.model_dump_json()
+                    )
+                    await db.update_module_status(
+                        investigation_id, "network_ai", net_res.status
+                    )
+                except Exception as e:
+                    logger.exception("NETWORK_AI failed for %s", investigation_id)
+                    err = ProcessingError(code="NETWORK_AI_ERROR", message=str(e))
+                    await db.update_module_status(
+                        investigation_id, "network_ai", ModuleStatusEnum.FAILED, error_json=err.model_dump_json()
+                    )
+            else:
                 await db.update_module_status(
-                    investigation_id, name, ModuleStatusEnum.UNAVAILABLE
+                    investigation_id, "network_ai", ModuleStatusEnum.NOT_APPLICABLE
+                )
+
+        # B. PROPAGATION
+        if inv.modules.propagation.status == ModuleStatusEnum.PENDING:
+            if posts and len(posts) > 0:
+                await db.update_module_status(investigation_id, "propagation", ModuleStatusEnum.RUNNING)
+                try:
+                    prop_res = await asyncio.to_thread(
+                        analyze_propagation,
+                        posts=posts,
+                        investigation_id=investigation_id,
+                    )
+                    await db.store_module_result(
+                        investigation_id, "propagation", prop_res.model_dump_json()
+                    )
+                    await db.update_module_status(
+                        investigation_id, "propagation", prop_res.status
+                    )
+                except Exception as e:
+                    logger.exception("PROPAGATION failed for %s", investigation_id)
+                    err = ProcessingError(code="PROPAGATION_ERROR", message=str(e))
+                    await db.update_module_status(
+                        investigation_id, "propagation", ModuleStatusEnum.FAILED, error_json=err.model_dump_json()
+                    )
+            else:
+                await db.update_module_status(
+                    investigation_id, "propagation", ModuleStatusEnum.NOT_APPLICABLE
                 )
 
         # ─────────────────────────────────────────────────────────────────────
-        # 3. Aggregate top-level investigation status
+        # 4. Aggregate top-level investigation status
         # ─────────────────────────────────────────────────────────────────────
         final = await _aggregate(investigation_id)
         await db.update_investigation_status(investigation_id, final)

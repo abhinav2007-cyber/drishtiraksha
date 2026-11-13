@@ -75,6 +75,23 @@ class ModuleStatus(BaseModel):
     completed_at: datetime | None = None
 
 
+class SocialPost(BaseModel):
+    """Canonical schema for social-media post observations."""
+    post_id: str = Field(..., description="Unique post identifier")
+    account_id: str = Field(..., description="Account handle or ID")
+    text: str = Field("", description="Post message content")
+    timestamp: str = Field(..., description="ISO 8601 timestamp with timezone")
+    language: str | None = Field(None, description="Observed language code")
+    platform: str | None = Field(None, description="Source platform name")
+    media_id: str | None = Field(None, description="Associated media ID")
+    media_hash: str | None = Field(None, description="SHA-256 or perceptual hash")
+    claim_id: str | None = Field(None, description="Associated claim ID")
+    claim_group_id: str | None = Field(None, description="Associated claim group ID")
+    parent_post_id: str | None = Field(None, description="Parent post ID for replies/reposts")
+    activity: str = Field("post", description="Type of activity: post, repost, reply, share")
+    metadata: dict[str, Any] = Field(default_factory=dict, description="Arbitrary platform metadata")
+
+
 # ── investigation ─────────────────────────────────────────────────────────
 
 class InvestigationCreate(BaseModel):

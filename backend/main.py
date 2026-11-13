@@ -68,7 +68,7 @@ async def health_check():
         "success": True,
         "data": {
             "status": "healthy",
-            "version": "0.4.0-stage4",
+            "version": "0.5.0-stage5",
             "modules": {
                 "media_ai": {
                     "available": True,
@@ -80,11 +80,11 @@ async def health_check():
                 },
                 "network_ai": {
                     "available": True,
-                    "reason": "Starter code available; full integration pending",
+                    "reason": "Graph analytics, betweenness/degree centrality, and multi-signal coordination active",
                 },
                 "propagation": {
                     "available": True,
-                    "reason": "Starter code available; full integration pending",
+                    "reason": "Chronological timeline reconstruction and explicit repost lineage active",
                 },
             },
         },
