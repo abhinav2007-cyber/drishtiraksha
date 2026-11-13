@@ -284,17 +284,62 @@ export default function NewInvestigationPage() {
           </div>
 
           {includeSocialPosts && (
-            <div className="space-y-1.5 mt-2">
+            <div className="space-y-3 mt-3 bg-slate-50 p-3.5 rounded-lg border border-slate-200">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-slate-800">
+                  Provide Dataset (Paste JSON or Upload File)
+                </span>
+                <label className="cursor-pointer inline-flex items-center gap-1.5 text-xs font-semibold text-teal-800 bg-white px-3 py-1.5 rounded border border-slate-300 hover:bg-slate-100 transition-colors">
+                  <span>📁 Upload JSON File</span>
+                  <input
+                    type="file"
+                    accept=".json"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = (event) => {
+                        const content = event.target?.result as string;
+                        setSocialPostsJson(content);
+                      };
+                      reader.readAsText(file);
+                    }}
+                  />
+                </label>
+              </div>
+
               <textarea
                 value={socialPostsJson}
                 onChange={(e) => setSocialPostsJson(e.target.value)}
-                rows={5}
-                placeholder='[{"post_id":"P001","account_id":"A01","timestamp":"2026-11-12T09:00:00Z","claim_id":"CLAIM_BANK_01","media_hash":"hash1"}]'
-                className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 font-mono text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-teal-600 focus:bg-white"
+                rows={6}
+                placeholder='[
+  {
+    "post_id": "P001",
+    "account_id": "account_alpha",
+    "timestamp": "2026-11-13T10:00:00Z",
+    "claim_id": "claim_bank_run",
+    "media_hash": "sha256_sample_abc123",
+    "language": "en",
+    "platform": "twitter"
+  },
+  {
+    "post_id": "P002",
+    "account_id": "account_beta",
+    "timestamp": "2026-11-13T10:01:30Z",
+    "claim_id": "claim_bank_run",
+    "media_hash": "sha256_sample_abc123",
+    "language": "en",
+    "platform": "twitter",
+    "parent_post_id": "P001"
+  }
+]'
+                className="w-full bg-white border border-slate-300 rounded-lg p-2.5 font-mono text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-teal-600 focus:bg-white"
               />
-              <p className="text-[10px] text-slate-500">
-                Supply actual observed posts with post_id, account_id, and ISO-8601 timestamps.
-              </p>
+              <div className="text-[11px] text-slate-500 space-y-0.5">
+                <p>• <strong>Required fields:</strong> <code className="bg-slate-200 px-1 py-0.5 rounded text-slate-800">post_id</code>, <code className="bg-slate-200 px-1 py-0.5 rounded text-slate-800">account_id</code>, <code className="bg-slate-200 px-1 py-0.5 rounded text-slate-800">timestamp</code> (ISO-8601 with timezone).</p>
+                <p>• <strong>Optional fields:</strong> <code className="bg-slate-200 px-1 py-0.5 rounded text-slate-800">claim_id</code>, <code className="bg-slate-200 px-1 py-0.5 rounded text-slate-800">media_hash</code>, <code className="bg-slate-200 px-1 py-0.5 rounded text-slate-800">parent_post_id</code>, <code className="bg-slate-200 px-1 py-0.5 rounded text-slate-800">platform</code>, <code className="bg-slate-200 px-1 py-0.5 rounded text-slate-800">language</code>.</p>
+              </div>
             </div>
           )}
         </div>

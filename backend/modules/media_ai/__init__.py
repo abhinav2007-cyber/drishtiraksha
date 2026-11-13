@@ -1,5 +1,9 @@
 """MEDIA_AI module — Image/Audio/Video deepfake detection, media fingerprinting, and provenance."""
 
+from backend.modules.media_ai.audio_detector import (
+    analyze_audio_file,
+    load_audio_classifier,
+)
 from backend.modules.media_ai.fingerprint import (
     compute_sha256,
     compute_file_sha256,
@@ -14,6 +18,8 @@ from backend.modules.media_ai.image_detector import (
 from backend.modules.media_ai.service import process_media
 
 __all__ = [
+    "analyze_audio_file",
+    "load_audio_classifier",
     "compute_sha256",
     "compute_file_sha256",
     "compute_perceptual_hashes",

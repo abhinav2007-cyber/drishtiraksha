@@ -12,6 +12,7 @@ from typing import Any
 
 from PIL import Image
 
+from backend.modules.media_ai.audio_detector import analyze_audio_file
 from backend.modules.media_ai.fingerprint import (
     compute_file_sha256,
     compute_perceptual_hashes,
@@ -198,23 +199,34 @@ def process_media(
         )
 
     # ─────────────────────────────────────────────────────────────────────────
-    # 3. AUDIO PROCESSING (Honest UNAVAILABLE state)
+    # 3. AUDIO PROCESSING (Real Wav2Vec2 Synthetic Speech Detection)
     # ─────────────────────────────────────────────────────────────────────────
     elif media_type == "audio":
         sha256_hash = compute_file_sha256(path_obj)
-        deepfake_obj = DeepfakeDetectionResult(
-            status=ModuleStatusEnum.UNAVAILABLE,
-            model_name=None,
-            prediction=None,
-            confidence=None,
-            explanation=(
-                "Dedicated synthetic-speech deepfake detector is not configured in this stage. "
-                "In accordance with zero-fabrication protocol, no simulated speech scores are generated."
-            ),
-            limitations=[
-                "Audio deepfake detection requires specialized wav2vec2 synthetic-speech checkpoints.",
-            ],
-        )
+        try:
+            audio_res = analyze_audio_file(path_obj)
+            deepfake_obj = DeepfakeDetectionResult(
+                status=ModuleStatusEnum.COMPLETED,
+                model_name=audio_res["model_name"],
+                model_version=audio_res["model_version"],
+                prediction=audio_res["prediction"],
+                confidence=audio_res["confidence"],
+                explanation=audio_res["explanation"],
+                device=audio_res["device"],
+                inference_time_ms=audio_res["inference_time_ms"],
+                raw_scores=audio_res["raw_scores"],
+                limitations=audio_res["limitations"],
+            )
+        except Exception as exc:
+            logger.warning("Audio deepfake analysis failed on %s: %s", path_obj.name, exc)
+            deepfake_obj = DeepfakeDetectionResult(
+                status=ModuleStatusEnum.UNAVAILABLE,
+                model_name="mo-thecreator/Deepfake-audio-detection",
+                prediction=None,
+                confidence=None,
+                explanation=f"Audio analysis could not process file ({exc}). Only uncompressed WAV format is currently decoded.",
+                limitations=["Audio format decoding failed or file is corrupted."],
+            )
 
         return MediaResult(
             media_id=media_id,

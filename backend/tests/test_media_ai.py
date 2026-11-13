@@ -183,3 +183,56 @@ def test_missing_image_path():
     """Missing file must raise FileNotFoundError."""
     with pytest.raises(FileNotFoundError):
         analyze_image_file(Path("non_existent_file.jpg"))
+
+
+def test_audio_deepfake_inference_real_wav(tmp_path: Path):
+    """Verify Wav2Vec2 audio deepfake detector on real synthesized audio bytes."""
+    import numpy as np
+    import scipy.io.wavfile as wavfile
+    from backend.modules.media_ai.audio_detector import analyze_audio_file
+
+    test_wav = tmp_path / "sample_audio.wav"
+    sr = 16000
+    duration = 1.5
+    t = np.linspace(0, duration, int(sr * duration), endpoint=False)
+    data = (np.sin(2 * np.pi * 440 * t) * 32767).astype(np.int16)
+    wavfile.write(str(test_wav), sr, data)
+
+    res = analyze_audio_file(test_wav)
+    assert res["status"] == "COMPLETED"
+    assert res["model_name"] == "mo-thecreator/Deepfake-audio-detection"
+    assert res["prediction"] in ("LIKELY_AUTHENTIC_SPEECH", "SUSPICIOUS_SYNTHETIC_SPEECH")
+    assert 0.0 <= res["confidence"] <= 1.0
+    assert "fake" in res["raw_scores"] and "real" in res["raw_scores"]
+    assert res["inference_time_ms"] > 0
+    assert len(res["limitations"]) > 0
+
+
+def test_video_frame_sampling_service(tmp_path: Path):
+    """Verify OpenCV sampled-frame video processing."""
+    import cv2
+    import numpy as np
+
+    test_video = tmp_path / "sample_video.mp4"
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    out = cv2.VideoWriter(str(test_video), fourcc, 10.0, (128, 128))
+
+    # Write 20 synthetic frames
+    for i in range(20):
+        frame = np.full((128, 128, 3), (i * 10) % 255, dtype=np.uint8)
+        out.write(frame)
+    out.release()
+
+    res = process_media(
+        media_path=str(test_video),
+        media_type="video",
+        investigation_id="inv-video-test",
+    )
+    assert res.media_type == "video"
+    assert res.analysis.deepfake_detection.status == ModuleStatusEnum.COMPLETED
+    assert "Frame-Sampled" in res.analysis.deepfake_detection.model_name
+    assert res.analysis.deepfake_detection.prediction in (
+        "LIKELY_REAL_SAMPLED_FRAMES",
+        "SUSPICIOUS_AI_GENERATED_FRAMES",
+    )
+    assert res.analysis.fingerprint.sha256 is not None
