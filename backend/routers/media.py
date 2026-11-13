@@ -48,3 +48,61 @@ async def get_media_results(investigation_id: str):
         )
 
     return APIResponse(success=True, data=result.model_dump(mode="json"))
+
+
+@router.get("/investigations/{investigation_id}/media/fingerprint", response_model=APIResponse)
+async def get_media_fingerprint(investigation_id: str):
+    """Return only the media fingerprint details (SHA-256 and perceptual hashes)."""
+    inv = await db.get_investigation(investigation_id)
+    if inv is None:
+        raise HTTPException(status_code=404, detail="Investigation not found")
+
+    stored = await db.get_module_result(investigation_id, "media_ai")
+    if not stored:
+        return APIResponse(
+            success=True,
+            data={
+                "investigation_id": investigation_id,
+                "status": inv.modules.media_ai.status.value,
+                "fingerprint": None,
+            },
+        )
+
+    analysis = stored.get("analysis", {})
+    return APIResponse(
+        success=True,
+        data={
+            "investigation_id": investigation_id,
+            "media_id": stored.get("media_id"),
+            "fingerprint": analysis.get("fingerprint"),
+        },
+    )
+
+
+@router.get("/investigations/{investigation_id}/media/duplicates", response_model=APIResponse)
+async def get_media_duplicates(investigation_id: str):
+    """Return duplicate and near-duplicate matching results."""
+    inv = await db.get_investigation(investigation_id)
+    if inv is None:
+        raise HTTPException(status_code=404, detail="Investigation not found")
+
+    stored = await db.get_module_result(investigation_id, "media_ai")
+    if not stored:
+        return APIResponse(
+            success=True,
+            data={
+                "investigation_id": investigation_id,
+                "status": inv.modules.media_ai.status.value,
+                "near_duplicates": [],
+            },
+        )
+
+    analysis = stored.get("analysis", {})
+    return APIResponse(
+        success=True,
+        data={
+            "investigation_id": investigation_id,
+            "media_id": stored.get("media_id"),
+            "near_duplicates": analysis.get("near_duplicates", []),
+        },
+    )

@@ -181,14 +181,15 @@ async def get_investigation_status(investigation_id: str):
 
 
 async def _update_media_path(investigation_id: str, new_path: str) -> None:
-    """Update the media path after renaming the uploaded file."""
+    """Update the media path and filename after renaming the uploaded file."""
     import aiosqlite
     from backend import config
     from backend.schemas import _now_utc
 
+    filename = os.path.basename(new_path)
     async with aiosqlite.connect(str(config.DATABASE_PATH)) as conn:
         await conn.execute(
-            "UPDATE investigations SET media_path = ?, updated_at = ? WHERE investigation_id = ?",
-            (new_path, _now_utc().isoformat(), investigation_id),
+            "UPDATE investigations SET media_path = ?, media_filename = ?, updated_at = ? WHERE investigation_id = ?",
+            (new_path, filename, _now_utc().isoformat(), investigation_id),
         )
         await conn.commit()

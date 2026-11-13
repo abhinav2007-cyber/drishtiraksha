@@ -2,8 +2,6 @@
 
 Manages the lifecycle of an investigation: dispatching module processing
 as background tasks, updating statuses, and computing the aggregate state.
-
-Stage 1: No actual AI inference — PENDING modules become UNAVAILABLE.
 """
 from __future__ import annotations
 
@@ -11,7 +9,12 @@ import asyncio
 import logging
 
 from backend import database as db
-from backend.schemas import InvestigationState, ModuleStatusEnum
+from backend.modules.media_ai.service import process_media
+from backend.schemas import (
+    InvestigationState,
+    ModuleStatusEnum,
+    ProcessingError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -41,14 +44,61 @@ async def _process(investigation_id: str) -> None:
             logger.error("Investigation %s vanished", investigation_id)
             return
 
-        # Stage 1: mark PENDING modules UNAVAILABLE (no models loaded)
-        for name in db.MODULE_NAMES:
+        # ─────────────────────────────────────────────────────────────────────
+        # 1. MEDIA_AI Processing (Genuine Pretrained Image & Video Inference)
+        # ─────────────────────────────────────────────────────────────────────
+        if inv.modules.media_ai.status == ModuleStatusEnum.PENDING and inv.media_path:
+            await db.update_module_status(investigation_id, "media_ai", ModuleStatusEnum.RUNNING)
+            try:
+                # Retrieve stored reference fingerprints to detect media reuse
+                ref_fps = await db.get_stored_media_fingerprints(
+                    exclude_investigation_id=investigation_id
+                )
+
+                # Run inference in a thread to keep the async event loop responsive
+                media_res = await asyncio.to_thread(
+                    process_media,
+                    media_path=inv.media_path,
+                    media_type=inv.input_type.value,
+                    investigation_id=investigation_id,
+                    media_id=inv.media_id,
+                    filename=inv.media_filename,
+                    reference_fingerprints=ref_fps,
+                )
+
+                # Persist result
+                await db.store_module_result(
+                    investigation_id, "media_ai", media_res.model_dump_json()
+                )
+
+                # Set module status from detection status (COMPLETED or UNAVAILABLE)
+                status_to_set = media_res.analysis.deepfake_detection.status
+                await db.update_module_status(
+                    investigation_id, "media_ai", status_to_set
+                )
+            except Exception as e:
+                logger.exception("MEDIA_AI failed for %s", investigation_id)
+                err = ProcessingError(code="MEDIA_AI_ERROR", message=str(e))
+                await db.update_module_status(
+                    investigation_id,
+                    "media_ai",
+                    ModuleStatusEnum.FAILED,
+                    error_json=err.model_dump_json(),
+                )
+
+        # ─────────────────────────────────────────────────────────────────────
+        # 2. Other modules (Stage 3: Honest UNAVAILABLE status)
+        # ─────────────────────────────────────────────────────────────────────
+        for name in ("claim_ai", "network_ai", "propagation"):
             ms = getattr(inv.modules, name)
             if ms.status == ModuleStatusEnum.PENDING:
                 await db.update_module_status(
                     investigation_id, name, ModuleStatusEnum.UNAVAILABLE
                 )
 
+        # ─────────────────────────────────────────────────────────────────────
+        # 3. Aggregate top-level investigation status
+        # ─────────────────────────────────────────────────────────────────────
         final = await _aggregate(investigation_id)
         await db.update_investigation_status(investigation_id, final)
         logger.info("Investigation %s → %s", investigation_id, final.value)
@@ -79,4 +129,4 @@ async def _aggregate(investigation_id: str) -> InvestigationState:
     elif completed > 0:
         return InvestigationState.PARTIAL
     else:
-        return InvestigationState.PARTIAL  # All unavailable in Stage 1
+        return InvestigationState.PARTIAL  # All unavailable/partial

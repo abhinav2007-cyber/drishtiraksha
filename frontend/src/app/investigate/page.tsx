@@ -63,62 +63,6 @@ export default function NewInvestigationPage() {
     setSelectedFile(file);
   };
 
-  const loadSampleSocialPosts = () => {
-    const sample = [
-      {
-        post_id: 'P001',
-        account_id: 'A01',
-        timestamp: '2026-11-12T09:00:00Z',
-        claim_id: 'CLAIM_BANK_01',
-        language: 'en',
-        media_hash: 'sha256_demo_bank_notice_01',
-        activity: 'original_post',
-      },
-      {
-        post_id: 'P002',
-        account_id: 'A02',
-        timestamp: '2026-11-12T09:01:00Z',
-        claim_id: 'CLAIM_BANK_01',
-        language: 'en',
-        media_hash: 'sha256_demo_bank_notice_01',
-        parent_post_id: 'P001',
-        activity: 'repost',
-      },
-      {
-        post_id: 'P003',
-        account_id: 'A03',
-        timestamp: '2026-11-12T09:02:00Z',
-        claim_id: 'CLAIM_BANK_01',
-        language: 'hi',
-        media_hash: 'sha256_demo_bank_notice_01',
-        parent_post_id: 'P002',
-        activity: 'repost',
-      },
-      {
-        post_id: 'P004',
-        account_id: 'A04',
-        timestamp: '2026-11-12T09:03:00Z',
-        claim_id: 'CLAIM_BANK_01',
-        language: 'te',
-        media_hash: 'sha256_demo_bank_notice_01',
-        parent_post_id: 'P003',
-        activity: 'repost',
-      },
-      {
-        post_id: 'P005',
-        account_id: 'A05',
-        timestamp: '2026-11-12T09:04:00Z',
-        claim_id: 'CLAIM_BANK_01',
-        language: 'en',
-        media_hash: 'sha256_demo_bank_notice_01',
-        parent_post_id: 'P004',
-        activity: 'repost',
-      },
-    ];
-    setSocialPostsJson(JSON.stringify(sample, null, 2));
-    setIncludeSocialPosts(true);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -179,22 +123,22 @@ export default function NewInvestigationPage() {
     <div className="max-w-3xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <Link href="/" className="text-xs text-cyan-400 hover:underline flex items-center gap-1 mb-2">
+        <Link href="/" className="text-xs text-teal-800 hover:underline flex items-center gap-1 mb-2 font-medium">
           ← Back to Dashboard
         </Link>
-        <h1 className="text-2xl font-extrabold text-slate-100">Initiate Investigation</h1>
-        <p className="text-sm text-slate-400 mt-1">
-          Submit suspicious digital artifacts or multilingual social posts for real-time forensic detection.
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Initiate Investigation</h1>
+        <p className="text-sm text-slate-600 mt-1">
+          Submit suspicious media artifacts or social posts for automated multimodal verification.
         </p>
       </div>
 
       {/* Success banner */}
       {successInfo && (
-        <div className="bg-emerald-950/80 border border-emerald-800 rounded-xl p-4 text-emerald-200 text-sm flex items-center justify-between">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-emerald-900 text-sm flex items-center justify-between shadow-xs">
           <div>
             <p className="font-bold">Investigation Created: {successInfo.id}</p>
-            <p className="text-xs text-emerald-400">
-              State: {successInfo.status} • Redirecting to real-time investigation dashboard...
+            <p className="text-xs text-emerald-700">
+              State: {successInfo.status} • Redirecting to real-time investigation dossier...
             </p>
           </div>
           <span className="text-lg animate-spin">⏳</span>
@@ -203,18 +147,18 @@ export default function NewInvestigationPage() {
 
       {/* Error alert */}
       {error && (
-        <div className="bg-rose-950/80 border border-rose-800 rounded-xl p-4 text-rose-200 text-sm">
+        <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 text-rose-900 text-sm shadow-xs">
           <p className="font-semibold flex items-center gap-1.5">
             <span>⚠️</span> Validation / Submission Error
           </p>
-          <p className="text-xs text-rose-300 mt-1">{error}</p>
+          <p className="text-xs text-rose-700 mt-1">{error}</p>
         </div>
       )}
 
       {/* Input Form */}
-      <form onSubmit={handleSubmit} className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-sm space-y-6">
+      <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-6">
         {/* Mode Selector Tabs */}
-        <div className="flex border-b border-slate-800 pb-3 gap-3">
+        <div className="flex border-b border-slate-200 pb-3 gap-3">
           <button
             type="button"
             onClick={() => {
@@ -223,8 +167,8 @@ export default function NewInvestigationPage() {
             }}
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
               activeTab === 'text'
-                ? 'bg-cyan-950 text-cyan-300 border border-cyan-800 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
             💬 Text / Narrative Claim
@@ -237,8 +181,8 @@ export default function NewInvestigationPage() {
             }}
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
               activeTab === 'media'
-                ? 'bg-cyan-950 text-cyan-300 border border-cyan-800 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
             📸 Media Upload (Image / Audio / Video)
@@ -249,27 +193,27 @@ export default function NewInvestigationPage() {
         {activeTab === 'text' && (
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold uppercase text-slate-300 mb-1 tracking-wider">
-                Suspicious Claim or Social Text <span className="text-rose-400">*</span>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1 tracking-wider">
+                Suspicious Claim or Social Text <span className="text-rose-500">*</span>
               </label>
               <textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 rows={4}
                 required
-                placeholder="Example: A major bank will shut down tomorrow. Withdraw all money immediately. (Supports English, Hindi, and Telugu)"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                placeholder="Enter claim text in English, Hindi, or Telugu (e.g. A major bank will shut tomorrow. Withdraw all money immediately.)"
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg p-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-1 focus:ring-teal-600"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase text-slate-300 mb-1 tracking-wider">
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1 tracking-wider">
                 Language Hint (Optional)
               </label>
               <select
                 value={languageHint}
                 onChange={(e) => setLanguageHint(e.target.value)}
-                className="bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
+                className="bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs text-slate-800 focus:outline-none focus:border-teal-600 focus:bg-white"
               >
                 <option value="">Auto-Detect Language</option>
                 <option value="en">English (en)</option>
@@ -284,34 +228,34 @@ export default function NewInvestigationPage() {
         {activeTab === 'media' && (
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold uppercase text-slate-300 mb-1 tracking-wider">
-                Select Media File <span className="text-rose-400">*</span>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1 tracking-wider">
+                Select Media File <span className="text-rose-500">*</span>
               </label>
               <input
                 type="file"
                 onChange={handleFileChange}
                 accept=".jpg,.jpeg,.png,.webp,.bmp,.wav,.mp3,.ogg,.flac,.m4a,.mp4,.avi,.mov,.webm,.mkv"
-                className="block w-full text-xs text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-cyan-950 file:text-cyan-300 file:border file:border-cyan-800 hover:file:bg-cyan-900 cursor-pointer bg-slate-950 border border-slate-800 rounded-lg p-2"
+                className="block w-full text-xs text-slate-600 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-900 file:text-white hover:file:bg-slate-800 cursor-pointer bg-slate-50 border border-slate-300 rounded-lg p-2"
               />
               <p className="text-[11px] text-slate-500 mt-1.5">
-                Supported: Images (.jpg, .png, .webp), Audio (.wav, .mp3, .flac), Video (.mp4, .mov). Max: 50MB.
+                Supported: Images (.jpg, .png, .webp, .bmp), Audio (.wav, .mp3, .flac), Video (.mp4, .mov). Max limit: 50MB.
               </p>
             </div>
 
             {selectedFile && (
-              <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 text-xs flex items-center justify-between">
+              <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs flex items-center justify-between">
                 <div>
-                  <span className="font-semibold text-slate-200">{selectedFile.name}</span>
+                  <span className="font-semibold text-slate-900">{selectedFile.name}</span>
                   <span className="text-slate-500 block">
                     {(selectedFile.size / 1024).toFixed(1)} KB • {selectedFile.type || 'binary'}
                   </span>
                 </div>
-                <span className="text-emerald-400 font-medium">✓ Validated</span>
+                <span className="text-teal-700 font-semibold">✓ Ready for analysis</span>
               </div>
             )}
 
             <div>
-              <label className="block text-xs font-semibold uppercase text-slate-300 mb-1 tracking-wider">
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1 tracking-wider">
                 Accompanying Caption or Claim (Optional)
               </label>
               <input
@@ -319,34 +263,24 @@ export default function NewInvestigationPage() {
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder="Optional text caption that appeared with this media"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-600 focus:bg-white"
               />
             </div>
           </div>
         )}
 
         {/* Optional Social Post Records for Network/Propagation */}
-        <div className="pt-4 border-t border-slate-800">
+        <div className="pt-4 border-t border-slate-200">
           <div className="flex items-center justify-between mb-2">
-            <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-300 uppercase tracking-wider">
+            <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700 uppercase tracking-wider">
               <input
                 type="checkbox"
                 checked={includeSocialPosts}
                 onChange={(e) => setIncludeSocialPosts(e.target.checked)}
-                className="rounded bg-slate-950 border-slate-700 text-cyan-600 focus:ring-0"
+                className="rounded border-slate-300 text-slate-900 focus:ring-0"
               />
-              Attach Social Post Records (Network & Propagation Intelligence)
+              Attach Observed Post Metadata (Network & Lineage Analysis)
             </label>
-
-            {includeSocialPosts && (
-              <button
-                type="button"
-                onClick={loadSampleSocialPosts}
-                className="text-[11px] text-cyan-400 hover:underline font-mono"
-              >
-                + Load Labeled Demo Fixture
-              </button>
-            )}
           </div>
 
           {includeSocialPosts && (
@@ -354,12 +288,12 @@ export default function NewInvestigationPage() {
               <textarea
                 value={socialPostsJson}
                 onChange={(e) => setSocialPostsJson(e.target.value)}
-                rows={6}
+                rows={5}
                 placeholder='[{"post_id":"P001","account_id":"A01","timestamp":"2026-11-12T09:00:00Z","claim_id":"CLAIM_BANK_01","media_hash":"hash1"}]'
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 font-mono text-xs text-slate-300 placeholder-slate-700 focus:outline-none focus:border-cyan-500"
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 font-mono text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-teal-600 focus:bg-white"
               />
               <p className="text-[10px] text-slate-500">
-                JSON array of post objects with account_id and ISO-8601 timestamp fields.
+                Supply actual observed posts with post_id, account_id, and ISO-8601 timestamps.
               </p>
             </div>
           )}
@@ -369,14 +303,14 @@ export default function NewInvestigationPage() {
         <div className="pt-2 flex items-center justify-end gap-3">
           <Link
             href="/"
-            className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white"
+            className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900"
           >
             Cancel
           </Link>
           <button
             type="submit"
             disabled={loading}
-            className="px-6 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-semibold text-sm shadow-md transition-all hover:scale-[1.02] disabled:opacity-50 flex items-center gap-2"
+            className="px-6 py-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm shadow-sm transition-all disabled:opacity-50 flex items-center gap-2"
           >
             {loading ? (
               <>

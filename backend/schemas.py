@@ -134,6 +134,7 @@ class FingerprintResult(BaseModel):
     sha256: str = ""
     perceptual_hash_average: str = ""
     perceptual_hash_difference: str = ""
+    perceptual_hash_perceptual: str = ""
 
 
 class DeepfakeDetectionResult(BaseModel):
@@ -143,6 +144,9 @@ class DeepfakeDetectionResult(BaseModel):
     prediction: str | None = None
     confidence: float | None = None
     explanation: str | None = None
+    device: str | None = None
+    inference_time_ms: float | None = None
+    raw_scores: dict[str, float] | None = None
     limitations: list[str] = Field(default_factory=list)
 
 

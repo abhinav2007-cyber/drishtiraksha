@@ -68,10 +68,16 @@ async def health_check():
         "success": True,
         "data": {
             "status": "healthy",
-            "version": "0.1.0-stage1",
+            "version": "0.3.0-stage3",
             "modules": {
-                "media_ai": {"available": False, "reason": "No models loaded (Stage 1)"},
-                "claim_ai": {"available": False, "reason": "No models loaded (Stage 1)"},
+                "media_ai": {
+                    "available": True,
+                    "reason": "Pretrained Swin Transformer image detector active",
+                },
+                "claim_ai": {
+                    "available": False,
+                    "reason": "Multilingual claim verification planned for Stage 4",
+                },
                 "network_ai": {
                     "available": True,
                     "reason": "Starter code available; full integration pending",

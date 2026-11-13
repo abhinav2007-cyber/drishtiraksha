@@ -291,6 +291,38 @@ async def get_module_result(investigation_id: str, module_name: str) -> dict | N
         return json.loads(row["result_json"])
 
 
+async def get_stored_media_fingerprints(exclude_investigation_id: str | None = None) -> list[dict]:
+    """Retrieve all previously computed media fingerprints for duplicate detection."""
+    async with aiosqlite.connect(_db_path()) as db:
+        db.row_factory = aiosqlite.Row
+        query = "SELECT investigation_id, result_json FROM module_results WHERE module_name = 'media_ai'"
+        params: tuple = ()
+        if exclude_investigation_id:
+            query += " AND investigation_id != ?"
+            params = (exclude_investigation_id,)
+        cursor = await db.execute(query, params)
+        rows = await cursor.fetchall()
+        items = []
+        for r in rows:
+            try:
+                res = json.loads(r["result_json"])
+                analysis = res.get("analysis", {})
+                fp = analysis.get("fingerprint")
+                if fp:
+                    items.append({
+                        "investigation_id": r["investigation_id"],
+                        "media_id": res.get("media_id"),
+                        "filename": res.get("filename"),
+                        "sha256": fp.get("sha256"),
+                        "perceptual_hash_average": fp.get("perceptual_hash_average"),
+                        "perceptual_hash_difference": fp.get("perceptual_hash_difference"),
+                        "perceptual_hash_perceptual": fp.get("perceptual_hash_perceptual"),
+                    })
+            except Exception:
+                pass
+        return items
+
+
 async def recover_interrupted() -> None:
     async with aiosqlite.connect(_db_path()) as db:
         now = _ts(_now_utc())

@@ -82,22 +82,36 @@ export interface FingerprintResult {
   sha256: string;
   perceptual_hash_average: string;
   perceptual_hash_difference: string;
+  perceptual_hash_perceptual?: string;
+}
+
+export interface NearDuplicateMatch {
+  reference_media_id: string;
+  reference_investigation_id?: string | null;
+  match_type: string;
+  similarity_score: number;
+  distance: number;
+  explanation: string;
 }
 
 export interface DeepfakeDetectionResult {
   status: ModuleStatusEnum;
   model_name?: string | null;
   model_version?: string | null;
+  architecture?: string | null;
   prediction?: string | null;
   confidence?: number | null;
   explanation?: string | null;
+  device?: string | null;
+  inference_time_ms?: number | null;
+  raw_scores?: Record<string, number> | null;
   limitations: string[];
 }
 
 export interface MediaAnalysis {
   deepfake_detection: DeepfakeDetectionResult;
   fingerprint?: FingerprintResult | null;
-  near_duplicates: Record<string, unknown>[];
+  near_duplicates: NearDuplicateMatch[];
 }
 
 export interface MediaResult {
