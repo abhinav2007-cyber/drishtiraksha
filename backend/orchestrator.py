@@ -9,6 +9,7 @@ import asyncio
 import logging
 
 from backend import database as db
+from backend.modules.claim_ai.service import process_text_claims
 from backend.modules.media_ai.service import process_media
 from backend.schemas import (
     InvestigationState,
@@ -87,9 +88,37 @@ async def _process(investigation_id: str) -> None:
                 )
 
         # ─────────────────────────────────────────────────────────────────────
-        # 2. Other modules (Stage 3: Honest UNAVAILABLE status)
+        # 2. CLAIM_AI Processing (Multilingual Extraction & Verification)
         # ─────────────────────────────────────────────────────────────────────
-        for name in ("claim_ai", "network_ai", "propagation"):
+        if inv.modules.claim_ai.status == ModuleStatusEnum.PENDING and inv.text:
+            await db.update_module_status(investigation_id, "claim_ai", ModuleStatusEnum.RUNNING)
+            try:
+                claim_res = await asyncio.to_thread(
+                    process_text_claims,
+                    text=inv.text,
+                    investigation_id=investigation_id,
+                    language_hint=inv.language_hint,
+                )
+                await db.store_module_result(
+                    investigation_id, "claim_ai", claim_res.model_dump_json()
+                )
+                await db.update_module_status(
+                    investigation_id, "claim_ai", claim_res.status
+                )
+            except Exception as e:
+                logger.exception("CLAIM_AI failed for %s", investigation_id)
+                err = ProcessingError(code="CLAIM_AI_ERROR", message=str(e))
+                await db.update_module_status(
+                    investigation_id,
+                    "claim_ai",
+                    ModuleStatusEnum.FAILED,
+                    error_json=err.model_dump_json(),
+                )
+
+        # ─────────────────────────────────────────────────────────────────────
+        # 3. Other modules (Stage 4: network & propagation pending)
+        # ─────────────────────────────────────────────────────────────────────
+        for name in ("network_ai", "propagation"):
             ms = getattr(inv.modules, name)
             if ms.status == ModuleStatusEnum.PENDING:
                 await db.update_module_status(

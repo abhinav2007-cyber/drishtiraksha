@@ -68,15 +68,15 @@ async def health_check():
         "success": True,
         "data": {
             "status": "healthy",
-            "version": "0.3.0-stage3",
+            "version": "0.4.0-stage4",
             "modules": {
                 "media_ai": {
                     "available": True,
                     "reason": "Pretrained Swin Transformer image detector active",
                 },
                 "claim_ai": {
-                    "available": False,
-                    "reason": "Multilingual claim verification planned for Stage 4",
+                    "available": True,
+                    "reason": "Pretrained multilingual MiniLM sentence embeddings & claim verification active",
                 },
                 "network_ai": {
                     "available": True,
